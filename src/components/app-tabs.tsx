@@ -57,6 +57,10 @@ export default function AppTabs() {
           tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />,
         }}
       />
+
+      {/* Menüde sekme olarak görünmeyecek gizli yan sayfalar */}
+      <Tabs.Screen name="kombin-form" options={{ href: null }} />
+      <Tabs.Screen name="karsilastirma-mock" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -68,7 +72,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 25, // Butonu menü çizgisinin üstüne taşır
+    marginBottom: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
