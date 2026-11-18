@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 // C# API adresi ve mock anahtarı (Geliştirme aşamasında mock modu aktif)
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL; // Adres .env.local dosyasından okunur (örnek: .env.example)
@@ -10,7 +10,7 @@ const isMocked = (endpoint) => MOCK_PREFIXES.some((prefix) => endpoint.startsWit
 // Oturum anahtarını kaydetme
 export const setAuthToken = async (token) => {
   try {
-    await AsyncStorage.setItem('user_token', token);
+    await SecureStore.setItemAsync('user_token', token);
   } catch (error) {
     console.error('Token kaydedilemedi', error);
   }
@@ -19,7 +19,7 @@ export const setAuthToken = async (token) => {
 // Oturum anahtarını okuma
 export const getAuthToken = async () => {
   try {
-    return await AsyncStorage.getItem('user_token');
+    return await SecureStore.getItemAsync('user_token');
   } catch (error) {
     console.error('Token okunamadı', error);
     return null;
@@ -29,7 +29,7 @@ export const getAuthToken = async () => {
 // Oturum anahtarını silme (Çıkış veya 401 durumunda)
 export const removeAuthToken = async () => {
   try {
-    await AsyncStorage.removeItem('user_token');
+    await SecureStore.deleteItemAsync('user_token');
   } catch (error) {
     console.error('Token silinemedi', error);
   }
