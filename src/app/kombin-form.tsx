@@ -302,7 +302,7 @@ export default function KombinFormScreen() {
 
         {/* Hava Özeti Kutusu */}
         {selectedCity ? (
-          <View style={styles.weatherSummaryBox}>
+          <View style={[styles.weatherSummaryBox, { backgroundColor: theme.backgroundSelected }]}>
             <Ionicons name="cloud-outline" size={22} color={theme.tint} />
             <View style={styles.weatherSummaryTexts}>
               <Text style={[styles.weatherSummaryTop, { color: theme.textSecondary }]}>
@@ -370,7 +370,6 @@ const styles = StyleSheet.create({
   weatherSummaryBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E5EFEA',
     padding: 14,
     borderRadius: 12,
     marginBottom: 12,
