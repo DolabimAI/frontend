@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // C# API adresi ve mock anahtarı (Geliştirme aşamasında mock modu aktif)
-const API_BASE_URL = 'https://api.dolabim.local'; // İleride Zehra'nın adresiyle güncellenecek
-const USE_MOCK = true; // Gerçek uçlar hazır olana kadar true kalır[cite: 1]
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL; // Adres .env.local dosyasından okunur (örnek: .env.example)
+// Henüz C#'ta yazılmamış uçlar mock'ta kalır (C3: /api/clothes, C5–C6: /api/comparisons); diğerleri gerçek API'ye gider.
+const MOCK_PREFIXES = ['/api/clothes', '/api/comparisons'];
+const isMocked = (endpoint) => MOCK_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
 
 // Oturum anahtarını kaydetme
 export const setAuthToken = async (token) => {
@@ -47,7 +49,7 @@ export const apiCall = async (endpoint, method = 'GET', body = null) => {
     }
 
     // MOCK (Sahte) Veri Yönetimi (Zehra'nın uçları gelene kadar burası çalışır)
-    if (USE_MOCK) {
+    if (isMocked(endpoint)) {
       console.log(`[MOCK API] ${method} -> ${endpoint}`);
       
       // Giriş / Kayıt Mock Yanıtları
