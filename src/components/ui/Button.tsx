@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { Colors, Radius, Type } from '@/constants/theme';
 
 interface ButtonProps {
   title: string;
@@ -19,14 +19,14 @@ export default function Button({ title, onPress, variant = 'primary', disabled =
     if (disabled) return theme.border;
     if (variant === 'outline') return 'transparent';
     if (variant === 'danger') return theme.error;
-    return theme.tint; // Tasarımdaki koyu yeşil
+    return theme.primary; // Template'teki lacivert "Continue" düğmesi
   };
 
   // Metin rengini belirler
   const getTextColor = () => {
     if (disabled) return theme.textSecondary;
-    if (variant === 'outline') return theme.tint;
-    return '#FFFFFF';
+    if (variant === 'outline') return theme.primary;
+    return theme.onPrimary;
   };
 
   return (
@@ -35,7 +35,7 @@ export default function Button({ title, onPress, variant = 'primary', disabled =
         styles.button,
         {
           backgroundColor: getBgColor(),
-          borderColor: variant === 'outline' ? theme.tint : 'transparent',
+          borderColor: variant === 'outline' ? theme.primary : 'transparent',
           borderWidth: variant === 'outline' ? 1.5 : 0,
         },
       ]}
@@ -54,9 +54,9 @@ export default function Button({ title, onPress, variant = 'primary', disabled =
 
 const styles = StyleSheet.create({
   button: {
-    paddingVertical: 14,
+    paddingVertical: 15,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
@@ -64,6 +64,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Type.bold,
   },
 });
