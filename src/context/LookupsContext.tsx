@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, ErrorBox, Loading } from '@/components/ui';
@@ -34,27 +34,33 @@ const LookupsContext = createContext<Lookups | null>(null);
 export function LookupsProvider({ children }: { children: React.ReactNode }) {
   const [lookups, setLookups] = useState<Lookups | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setErrorMessage(null);
-    try {
-      const data = await apiCall('/api/lookups');
-      setLookups(data);
-    } catch (error) {
-      const message = (error as { message?: string } | null)?.message;
-      setErrorMessage(message ?? 'Listeler alınamadı.');
-    }
-  }, []);
+  // "Tekrar dene"ye her basışta artar; effect listeleri yeniden ister
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let ignore = false; // ekran kapandıysa geç gelen cevap yok sayılır
+    apiCall('/api/lookups')
+      .then((data: Lookups) => {
+        if (!ignore) setLookups(data);
+      })
+      .catch((error: { message?: string } | null) => {
+        if (!ignore) setErrorMessage(error?.message ?? 'Listeler alınamadı.');
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [attempt]);
+
+  const retry = () => {
+    setErrorMessage(null);
+    setAttempt((n) => n + 1);
+  };
 
   if (errorMessage) {
     return (
       <View style={layout.center}>
         <ErrorBox message={errorMessage} />
-        <Button title="Tekrar dene" onPress={load} />
+        <Button title="Tekrar dene" onPress={retry} />
       </View>
     );
   }
