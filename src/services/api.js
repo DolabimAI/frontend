@@ -1,13 +1,16 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 // C# API adresi ve mock anahtarı (Geliştirme aşamasında mock modu aktif)
-const API_BASE_URL = 'https://api.dolabim.local'; // İleride Zehra'nın adresiyle güncellenecek
-const USE_MOCK = true; // Gerçek uçlar hazır olana kadar true kalır[cite: 1]
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL; // Adres .env.local dosyasından okunur (örnek: .env.example)
+// Henüz C#'ta yazılmamış uçlar mock'ta kalır (C3: /api/clothes, C5–C6: /api/comparisons); diğerleri gerçek API'ye gider.
+const MOCK_PREFIXES = ['/api/clothes', '/api/comparisons'];
+const isMocked = (endpoint) => MOCK_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
 
 // Oturum anahtarını kaydetme
 export const setAuthToken = async (token) => {
   try {
-    await AsyncStorage.setItem('user_token', token);
+    await SecureStore.setItemAsync('user_token', token);
   } catch (error) {
     console.error('Token kaydedilemedi', error);
   }
@@ -16,7 +19,7 @@ export const setAuthToken = async (token) => {
 // Oturum anahtarını okuma
 export const getAuthToken = async () => {
   try {
-    return await AsyncStorage.getItem('user_token');
+    return await SecureStore.getItemAsync('user_token');
   } catch (error) {
     console.error('Token okunamadı', error);
     return null;
@@ -26,7 +29,7 @@ export const getAuthToken = async () => {
 // Oturum anahtarını silme (Çıkış veya 401 durumunda)
 export const removeAuthToken = async () => {
   try {
-    await AsyncStorage.removeItem('user_token');
+    await SecureStore.deleteItemAsync('user_token');
   } catch (error) {
     console.error('Token silinemedi', error);
   }
@@ -38,16 +41,19 @@ export const apiCall = async (endpoint, method = 'GET', body = null) => {
   try {
     const token = await getAuthToken();
     
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+    // Gövde FormData ise (B5'teki fotoğraf yüklemesi) Content-Type eklenmez; sınır bilgisini fetch kendisi yazar
+    const isFormData = body instanceof FormData;
+    const headers = {};
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
     // MOCK (Sahte) Veri Yönetimi (Zehra'nın uçları gelene kadar burası çalışır)
-    if (USE_MOCK) {
+    if (isMocked(endpoint)) {
       console.log(`[MOCK API] ${method} -> ${endpoint}`);
       
       // Giriş / Kayıt Mock Yanıtları
@@ -70,30 +76,34 @@ export const apiCall = async (endpoint, method = 'GET', body = null) => {
     };
 
     if (body) {
-      options.body = JSON.stringify(body);
+      options.body = isFormData ? body : JSON.stringify(body);
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
 
-    // 401 Unauthorized kontrolü (Oturum süresi dolmuş veya geçersiz)
-    if (response.status === 401) {
+    // 204 ya da boş gövde: JSON okunmaz, null döner (ör. Bilgilendirme onayı)
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    // 401: yalnızca code === "unauthorized" oturum sonu sayılır (token geçersiz ya da süresi dolmuş): token silinir, Giriş açılır.
+    // Yanlış şifre (401 invalid_credentials) aşağıda normal hata olarak ekrana gider.
+    if (response.status === 401 && data?.code === 'unauthorized') {
       await removeAuthToken();
-      // Ekran yönlendirmesi veya global 401 tetikleyicisi buraya eklenebilir
-      throw { code: 401, message: 'Oturum süresi doldu, lütfen tekrar giriş yap.' };
+      router.replace('/giris');
+      throw { status: 401, code: 'unauthorized', message: data.message };
     }
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw { code: response.status, message: data.message || 'Bir hata oluştu.' };
+      // Hata nesnesi: status = HTTP durumu, code = C#'ın metin kodu (ör. under_18, email_taken), message = C#'ın mesajı
+      throw { status: response.status, code: data?.code, message: data?.message || 'Bir hata oluştu.' };
     }
 
     return data;
 
   } catch (error) {
-    // Ağ bağlantısı yoksa veya fetch patladıysa
-    if (!error.message || error.message === 'Network request failed') {
-      throw { code: 0, message: 'Bağlantı kurulamadı, internetini kontrol edip tekrar dene.' };
+    // Ağ hatası: sunucuya hiç ulaşılamadığında fetch TypeError fırlatır (internet yok, C# kapalı, adres yanlış)
+    if (error instanceof TypeError) {
+      throw { status: 0, code: 'network_error', message: 'Bağlantı kurulamadı, internetini kontrol edip tekrar dene.' };
     }
     throw error;
   }
