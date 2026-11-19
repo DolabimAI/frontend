@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Bulunduğun yerin havasını göstermek için konumunu kullanıyoruz. Konumun hiçbir yere kaydedilmez."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
