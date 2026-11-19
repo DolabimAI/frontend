@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import CategoryBadge, { type CategoryCode } from '@/components/CategoryBadge';
-import { GradientBackground } from '@/components/ui';
+import CategoryBadge from '@/components/CategoryBadge';
+import { Button, ErrorBox, GradientBackground, Loading } from '@/components/ui';
+import { useHomeData, type WeatherState } from '@/hooks/use-home-data';
 import { Colors, Gradients, OnGradient, Radius, Type } from '@/constants/theme';
 
 /**
  * Ana sayfa — görünüm Figma "DolabımAI / Ana sayfa" ekranından (18 Kasım).
- * Veriler hâlâ mock: B3b'de (C.4) me, wardrobe/status, nearest ve weather uçlarına bağlanacak.
+ * Veriler gerçek uçlardan (B3b, plan C.4): me, wardrobe/status, locations/nearest ve weather.
+ * Veri çekme src/hooks/use-home-data.ts'te; bu dosya yalnızca görünüm.
  */
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,32 +21,25 @@ export default function HomeScreen() {
   const gradients = Gradients[scheme];
   const onGradient = OnGradient[scheme];
 
-  // Mock veriler (Zehra C4 uçlarını bitirince gerçek API'den gelecek)
-  const [userName] = useState('Ayşe');
-  const [hasLocationOrCity] = useState(true); // false yaparsan konum yok uyarısını görürsün
-  const [weatherInfo] = useState({
-    city: 'İstanbul',
-    district: 'Kadıköy',
-    feelsLike: 14,
-    condition: 'Parçalı bulutlu',
-  });
-
-  // Dolap durumu mock verisi. code alanı C#'taki kategori kodlarıyla aynı (C.4).
-  const [wardrobeStatus, setWardrobeStatus] = useState({
-    isReady: false,
-    totalItems: 13,
-    missingText: 'Kombin için eksik: 2 üst, 1 ayakkabı',
-    showOnePieceNote: true,
-    categories: [
-      { code: 'ust' as CategoryCode, label: 'Üst', have: 4, need: 6 },
-      { code: 'alt' as CategoryCode, label: 'Alt', have: 5, need: 5 },
-      { code: 'ayakkabi' as CategoryCode, label: 'Ayakkabı', have: 2, need: 3 },
-      { code: 'dis' as CategoryCode, label: 'Dış giyim', have: 2, need: 2 },
-    ],
-  });
-
-  const ready = wardrobeStatus.isReady;
+  const home = useHomeData();
+  const ready = home.wardrobe?.isReady ?? false;
   const statBg = scheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)';
+
+  // Yükleniyor: me ve dolap durumu gelene kadar. Hata: ErrorBox ve "Tekrar dene" (plan C.4 Durumlar).
+  if (home.isLoading || home.errorMessage) {
+    return (
+      <SafeAreaView edges={['top']} style={[styles.safeArea, styles.centered, { backgroundColor: theme.background }]}>
+        {home.errorMessage ? (
+          <View style={styles.errorWrap}>
+            <ErrorBox message={home.errorMessage} />
+            <Button title="Tekrar dene" onPress={home.retry} />
+          </View>
+        ) : (
+          <Loading />
+        )}
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -52,34 +47,11 @@ export default function HomeScreen() {
         {/* Karşılama (template'teki "What are you / Looking for?") */}
         <View style={styles.header}>
           <Text style={[styles.hello, { color: theme.text }]}>Merhaba,</Text>
-          <Text style={[styles.name, { color: theme.text }]}>{userName}</Text>
+          <Text style={[styles.name, { color: theme.text }]}>{home.firstName}</Text>
         </View>
 
-        {/* Hava */}
-        <View style={[styles.weatherPill, { backgroundColor: theme.card, shadowColor: theme.shadow }]}>
-          <View style={styles.weatherBadge}>
-            <Ionicons
-              name={hasLocationOrCity ? 'partly-sunny-outline' : 'location-outline'}
-              size={22}
-              color="#325EF1"
-            />
-          </View>
-          {hasLocationOrCity ? (
-            <View style={styles.flex}>
-              <Text style={[styles.weatherPlace, { color: theme.text }]}>
-                {weatherInfo.city} · {weatherInfo.district}
-              </Text>
-              <Text style={[styles.weatherDetail, { color: theme.textSecondary }]}>
-                Hissedilen {weatherInfo.feelsLike}° · {weatherInfo.condition}
-              </Text>
-              <Text style={[styles.attribution, { color: theme.textSecondary }]}>Hava verisi: Open-Meteo.com</Text>
-            </View>
-          ) : (
-            <Text style={[styles.weatherDetail, styles.flex, { color: theme.textSecondary }]}>
-              Havayı görmek için konum izni ver ya da Profil&apos;den Şehrim&apos;ini seç
-            </Text>
-          )}
-        </View>
+        {/* Hava (kendi satırında ayrı yüklenir; hata ekranın geri kalanını durdurmaz) */}
+        <WeatherPill weather={home.weather} />
 
         {/* Dolap şartı eksikse uyarı kartı */}
         {!ready && (
@@ -87,21 +59,21 @@ export default function HomeScreen() {
             <GradientBackground colors={gradients.warning} radius={Radius.xl} />
             <View style={styles.missingHeader}>
               <Ionicons name="alert-circle-outline" size={20} color={onGradient.title} />
-              <Text style={[styles.missingTitle, { color: onGradient.title }]}>{wardrobeStatus.missingText}</Text>
+              <Text style={[styles.missingTitle, { color: onGradient.title }]}>{home.missingText}</Text>
             </View>
 
-            {wardrobeStatus.showOnePieceNote && (
+            {home.showOnePieceNote && (
               <Text style={[styles.onePieceNote, { color: onGradient.body }]}>
                 Ya da 5 tek parça ekleyerek de başlayabilirsin.
               </Text>
             )}
 
             <View style={styles.categoryGrid}>
-              {wardrobeStatus.categories.map((cat) => {
+              {home.requirements.map((cat) => {
                 const done = cat.have >= cat.need;
                 return (
-                  <View key={cat.code} style={[styles.categoryBox, { backgroundColor: statBg }]}>
-                    <CategoryBadge code={cat.code} />
+                  <View key={cat.category} style={[styles.categoryBox, { backgroundColor: statBg }]}>
+                    <CategoryBadge code={cat.category} />
                     <Text style={[styles.categoryCount, { color: onGradient.title }]}>
                       {cat.have}/{cat.need}
                       {done ? ' ✓' : ''}
@@ -158,7 +130,7 @@ export default function HomeScreen() {
             icon="shirt-outline"
             iconColor="#E05F78"
             title="Dolabım"
-            subtitle={`${wardrobeStatus.totalItems} parça`}
+            subtitle={`${home.wardrobe?.totalCount ?? 0} parça`}
             titleColor={onGradient.title}
             onPress={() => router.push('/dolabim')}
           />
@@ -173,16 +145,48 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Test amaçlı durum değiştirme butonu (B3b'de gerçek API bağlanınca silinecek) */}
-        <Pressable
-          style={styles.mockToggle}
-          onPress={() => setWardrobeStatus((prev) => ({ ...prev, isReady: !prev.isReady }))}>
-          <Text style={[styles.mockToggleText, { color: theme.textSecondary }]}>
-            [Test] Dolap durumunu değiştir ({ready ? 'Hazır' : 'Eksik'})
-          </Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Hava satırı: yükleniyor, gerçek hava, yer yok uyarısı ya da hata (plan C.4). */
+function WeatherPill({ weather }: { weather: WeatherState }) {
+  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const theme = Colors[scheme];
+  const icon = weather.status === 'no_place' ? 'location-outline' : 'partly-sunny-outline';
+
+  let content: React.ReactNode;
+  if (weather.status === 'ok') {
+    const place = weather.place.district
+      ? `${weather.place.city.name} · ${weather.place.district.name}`
+      : weather.place.city.name;
+    content = (
+      <View style={styles.flex}>
+        <Text style={[styles.weatherPlace, { color: theme.text }]}>{place}</Text>
+        <Text style={[styles.weatherDetail, { color: theme.textSecondary }]}>
+          Hissedilen {weather.feelsLike}° · {weather.condition}
+        </Text>
+        <Text style={[styles.attribution, { color: theme.textSecondary }]}>Hava verisi: Open-Meteo.com</Text>
+      </View>
+    );
+  } else {
+    const message =
+      weather.status === 'loading'
+        ? 'Hava alınıyor…'
+        : weather.status === 'no_place'
+          ? "Havayı görmek için konum izni ver ya da Profil'den Şehrim'ini seç"
+          : 'Hava durumu alınamadı, biraz sonra tekrar dene.';
+    content = <Text style={[styles.weatherDetail, styles.flex, { color: theme.textSecondary }]}>{message}</Text>;
+  }
+
+  return (
+    <View style={[styles.weatherPill, { backgroundColor: theme.card, shadowColor: theme.shadow }]}>
+      <View style={styles.weatherBadge}>
+        <Ionicons name={icon} size={22} color="#325EF1" />
+      </View>
+      {content}
+    </View>
   );
 }
 
@@ -211,6 +215,8 @@ function ShortcutCard({ colors, icon, iconColor, title, subtitle, titleColor, on
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  centered: { justifyContent: 'center' },
+  errorWrap: { padding: 20, gap: 12 },
   container: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 48, gap: 20 },
   flex: { flex: 1 },
   pressed: { opacity: 0.85 },
@@ -310,6 +316,4 @@ const styles = StyleSheet.create({
   shortcutTitle: { fontFamily: Type.bold, fontSize: 18 },
   shortcutSub: { fontFamily: Type.light, fontSize: 13, marginTop: 4 },
 
-  mockToggle: { alignItems: 'center', padding: 8 },
-  mockToggleText: { fontFamily: Type.regular, fontSize: 12, textDecorationLine: 'underline' },
 });
