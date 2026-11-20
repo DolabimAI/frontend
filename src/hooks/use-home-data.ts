@@ -9,7 +9,7 @@ import { pickTimeOfDay, toLocalIsoDate } from '@/utils/date';
 
 // ---- C# cevaplarının biçimi (plan C.1 ve C.4; api deposundaki *Response.cs dosyalarıyla aynı) ----
 
-type NamedItem = { id: number; name: string };
+export type NamedItem = { id: number; name: string };
 
 export type Me = {
   firstName: string;
@@ -31,7 +31,7 @@ export type WardrobeStatus = {
 
 type NearestLocation = { city: NamedItem; district: NamedItem };
 
-type WeatherResponse = {
+export type WeatherResponse = {
   feelsLikeTemp: number;
   condition: { value: string; displayName: string };
   isDaytime: boolean;
@@ -52,8 +52,9 @@ export type MissingCategory = WardrobeRequirement & { label: string };
 /**
  * Hava için yer: konum izni varsa en yakın ilçe, yoksa Şehrim, o da yoksa null (plan C.4 adım 3).
  * Konum yalnızca nearest isteğinde kullanılır, hiçbir yere kaydedilmez.
+ * Kombin formu da (B7) aynı kuralla varsayılan yeri bulur.
  */
-async function resolvePlace(me: Me): Promise<Place | null> {
+export async function resolvePlace(me: Me): Promise<Place | null> {
   const fallback: Place | null = me.defaultCity ? { city: me.defaultCity, district: me.defaultDistrict } : null;
 
   try {
