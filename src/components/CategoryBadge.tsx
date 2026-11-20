@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 
 /** C# wardrobe/status cevabındaki kategori kodları (C.4). */
-export type CategoryCode = 'ust' | 'alt' | 'tek_parca' | 'dis' | 'ayakkabi';
+export type CategoryCode = 'ust' | 'alt' | 'tek_parca' | 'dis' | 'ayakkabi' | 'aksesuar';
 
 // Figma "Rozet/..." bileşenleriyle aynı yollar ve renkler (template'teki House/Condo/Villa rozetleri).
 const BADGES: Record<CategoryCode, { bg: string; fg: string; d: string[] }> = {
@@ -33,6 +33,11 @@ const BADGES: Record<CategoryCode, { bg: string; fg: string; d: string[] }> = {
     bg: '#CDEDF1',
     fg: '#0E9AA7',
     d: ['M8 3 4 6v15h5V9M16 3l4 3v15h-5V9M8 3l4 4 4-4M12 7v14'],
+  },
+  aksesuar: {
+    bg: '#FFF1CC',
+    fg: '#C08A00',
+    d: ['M6 8h12l1 13H5z', 'M9 8V6a3 3 0 0 1 6 0v2'],
   },
 };
 

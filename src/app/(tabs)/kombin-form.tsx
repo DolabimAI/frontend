@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Switch,
   StyleSheet,
   SafeAreaView,
@@ -14,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { Button, Dropdown, ErrorBox } from '@/components/ui';
 import { useKombinForm } from '@/hooks/use-kombin-form';
+import { USE_MOCK } from '@/services/comparisons';
 
 /**
  * Kombin formu — görünüm önceki sürümle aynı; veriler gerçek uçlardan (B7, plan C.5).
@@ -206,12 +208,24 @@ export default function KombinFormScreen() {
         <Button
           title="Kombin öner"
           disabled={!form.canSubmit}
-          onPress={() => router.push({ pathname: '/karsilastirma-mock', params: form.submitParams })}
+          onPress={() => router.push({ pathname: '/karsilastirma', params: form.submitParams })}
         />
         {form.wardrobeReady === false ? (
           <Text style={[styles.hint, { color: theme.textSecondary }]}>
             Kombin önerebilmemiz için önce dolabını tamamla.
           </Text>
+        ) : null}
+
+        {/* GEÇİCİ: yalnızca geliştirmede ve karşılaştırma mock'ken. Parça ekleme (C3) gelene kadar
+            boş dolapla da Karşılaştırma ekranını denemek için. USE_MOCK kapanınca kendiliğinden kaybolur. */}
+        {__DEV__ && USE_MOCK && form.wardrobeReady === false && form.cityId && form.timeOfDayId ? (
+          <Pressable
+            hitSlop={8}
+            onPress={() => router.push({ pathname: '/karsilastirma', params: form.submitParams })}>
+            <Text style={[styles.hint, styles.devLink, { color: theme.link }]}>
+              [Geliştirme] Dolap eksik olsa da mock&apos;la dene
+            </Text>
+          </Pressable>
         ) : null}
       </ScrollView>
     </SafeAreaView>
@@ -268,4 +282,5 @@ const styles = StyleSheet.create({
   weatherSummaryTop: { fontSize: 12 },
   weatherSummaryBottom: { fontSize: 14, fontWeight: '700', marginTop: 2 },
   hint: { fontSize: 13, textAlign: 'center', marginTop: 10 },
+  devLink: { textDecorationLine: 'underline' },
 });

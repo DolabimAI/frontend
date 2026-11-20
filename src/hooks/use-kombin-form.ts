@@ -262,6 +262,8 @@ export function useKombinForm() {
     eventStyleId: String(eventStyle?.id ?? ''),
     eventStyle: eventCode,
     includeAccessories: String(includeAccessory),
+    // Karşılaştırma'daki bağlam özeti için ("İstanbul · Üsküdar")
+    placeName: [city?.displayName, district?.displayName].filter(Boolean).join(' · '),
   };
 
   return {

@@ -124,8 +124,6 @@ export default function AppTabs() {
         }}
       />
 
-      {/* Menüde sekme olarak görünmeyecek gizli yan sayfalar */}
-      <Tabs.Screen name="karsilastirma-mock" options={{ href: null }} />
     </Tabs>
   );
 }
