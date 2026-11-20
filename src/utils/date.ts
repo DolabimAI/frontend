@@ -21,3 +21,13 @@ export function pickTimeOfDay(timesOfDay: TimeOfDayItem[], hour: number): TimeOf
   const sorted = [...timesOfDay].sort((a, b) => a.startHour - b.startHour);
   return sorted.find((timeOfDay) => hour <= timeOfDay.endHour) ?? null;
 }
+
+const DAY_NAMES = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+const MONTH_NAMES = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+
+/** "2026-11-20" → "20 Kas (Cum)". Yerel takvimle okunur (UTC'ye çevrilmez). */
+export function formatShortDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} (${DAY_NAMES[d.getDay()]})`;
+}

@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 import {
@@ -10,14 +10,18 @@ import {
 } from '@expo-google-fonts/lato';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 import { Colors } from '@/constants/theme';
 import { LookupsProvider } from '@/context/LookupsContext';
 import { useDevTokenReady } from '@/dev/use-dev-token';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+/**
+ * Kök düzen: en dışta ekran yığını (Stack). Alt barlı ekranlar (tabs) grubunda;
+ * Karşılaştırma ve Seçilen kombin gibi akış ekranları alt barın üstüne açılır.
+ * B2'deki Giriş/Kayıt ve B5'teki İşleniyor/Etiket onayı da bu yığına eklenir.
+ */
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts({
     Lato_300Light,
@@ -47,7 +51,11 @@ export default function TabLayout() {
       {/* Listeler (lookups) bir kez alınır, bütün ekranlar useLookups ile kullanır (C.0 adım 8).
           B2'de AuthGate gelince bu sarmalayıcı AuthGate'in içine, oturum açıkken çalışacak yere taşınır. */}
       <LookupsProvider>
-        <AppTabs />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.background } }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="karsilastirma" />
+          <Stack.Screen name="secilen-kombin" />
+        </Stack>
       </LookupsProvider>
     </ThemeProvider>
   );
