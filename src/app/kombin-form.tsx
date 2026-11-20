@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -10,145 +10,20 @@ import {
   useColorScheme,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
-import { Button, Dropdown, DropdownOption } from '@/components/ui';
+import { Button, Dropdown, ErrorBox } from '@/components/ui';
+import { useKombinForm } from '@/hooks/use-kombin-form';
 
-const CITIES: DropdownOption[] = [
-  { id: 6, value: 'ankara', displayName: 'Ankara' },
-  { id: 34, value: 'istanbul', displayName: 'İstanbul' },
-  { id: 35, value: 'izmir', displayName: 'İzmir' },
-];
-
-const DISTRICTS_BY_CITY: Record<string, DropdownOption[]> = {
-  ankara: [
-    { id: 1, value: 'cankaya', displayName: 'Çankaya' },
-    { id: 2, value: 'yenimahalle', displayName: 'Yenimahalle' },
-  ],
-  istanbul: [
-    { id: 3, value: 'kadikoy', displayName: 'Kadıköy' },
-    { id: 4, value: 'atasehir', displayName: 'Ataşehir' },
-  ],
-  izmir: [
-    { id: 5, value: 'bornova', displayName: 'Bornova' },
-    { id: 6, value: 'odemis', displayName: 'Ödemiş' },
-  ],
-};
-
-const TIMES_OF_DAY = [
-  { value: 'sabah', label: 'Sabah', endHour: 10 },
-  { value: 'ogle', label: 'Öğle', endHour: 16 },
-  { value: 'aksam', label: 'Akşam', endHour: 20 },
-  { value: 'gece', label: 'Gece', endHour: 23 },
-];
-
-const EVENTS = [
-  { value: 'gunluk', label: 'Günlük' },
-  { value: 'is', label: 'İş' },
-  { value: 'spor', label: 'Spor' },
-  { value: 'davet', label: 'Davet' },
-];
-
-// Bugün ve sonraki 6 günü oluşturur
-function getNextSevenDays() {
-  const days = [];
-  const dayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
-  const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-
-  for (let i = 0; i < 7; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const label =
-      i === 0
-        ? 'Bugün'
-        : i === 1
-        ? 'Yarın'
-        : `${d.getDate()} ${monthNames[d.getMonth()]}`;
-    const shortSummary = `${d.getDate()} ${monthNames[d.getMonth()]} (${dayNames[d.getDay()]})`;
-    days.push({
-      index: i,
-      dateStr: d.toISOString().split('T')[0],
-      label,
-      shortSummary,
-    });
-  }
-  return days;
-}
-
-// Güncel saate göre varsayılan vakti bulur
-function getDefaultTimeOfDay(currentHour: number) {
-  if (currentHour < 11) return 'sabah';
-  if (currentHour < 17) return 'ogle';
-  if (currentHour < 21) return 'aksam';
-  return 'gece';
-}
-
+/**
+ * Kombin formu — görünüm önceki sürümle aynı; veriler gerçek uçlardan (B7, plan C.5).
+ * Veri ve kurallar src/hooks/use-kombin-form.ts'te.
+ */
 export default function KombinFormScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
   const theme = Colors[scheme === 'dark' ? 'dark' : 'light'];
-
-  const currentHour = new Date().getHours();
-  const daysList = getNextSevenDays();
-
-  // Yer ve gün her açılışta varsayılana döner
-  const [selectedCity, setSelectedCity] = useState<string | null>('ankara');
-  const [selectedDistrict, setSelectedDistrict] = useState<string | null>('cankaya');
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
-  const [selectedTime, setSelectedTime] = useState<string>(getDefaultTimeOfDay(currentHour));
-
-  // Etkinlik ve aksesuar telefonda hatırlanır
-  const [selectedEvent, setSelectedEvent] = useState<string>('gunluk');
-  const [includeAccessory, setIncludeAccessory] = useState<boolean>(true);
-
-  useEffect(() => {
-    async function loadSavedPreferences() {
-      try {
-        const savedEvent = await AsyncStorage.getItem('pref_event');
-        const savedAcc = await AsyncStorage.getItem('pref_accessory');
-        if (savedEvent) setSelectedEvent(savedEvent);
-        if (savedAcc !== null) setIncludeAccessory(savedAcc === 'true');
-      } catch {
-        // Hata olursa varsayılanlar kalır
-      }
-    }
-    loadSavedPreferences();
-  }, []);
-
-  const handleEventChange = async (val: string) => {
-    setSelectedEvent(val);
-    await AsyncStorage.setItem('pref_event', val);
-  };
-
-  const handleAccessoryChange = async (val: boolean) => {
-    setIncludeAccessory(val);
-    await AsyncStorage.setItem('pref_accessory', String(val));
-  };
-
-  const isTimeDisabled = (endHour: number) => {
-    if (selectedDayIndex !== 0) return false; // Bugün değilse hiçbir vakit pasif değil
-    return currentHour > endHour;
-  };
-
-  const handleDayChange = (index: number) => {
-    setSelectedDayIndex(index);
-    if (index === 0) {
-      const selectedObj = TIMES_OF_DAY.find((t) => t.value === selectedTime);
-      if (selectedObj && currentHour > selectedObj.endHour) {
-        setSelectedTime(getDefaultTimeOfDay(currentHour));
-      }
-    }
-  };
-
-  const cityObj = CITIES.find((c) => c.value === selectedCity);
-  const districtList = selectedCity ? DISTRICTS_BY_CITY[selectedCity] || [] : [];
-  const districtObj = districtList.find((d) => d.value === selectedDistrict);
-  const timeObj = TIMES_OF_DAY.find((t) => t.value === selectedTime);
-
-  // Mock hava özeti (Zehra C4 bitince gerçek API'den gelecek)
-  const mockTemp = selectedTime === 'gece' ? 4 : selectedTime === 'sabah' ? 7 : 12;
-  const mockWeatherDesc = selectedCity === 'izmir' ? 'Güneşli' : 'Kapalı';
+  const form = useKombinForm();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -163,38 +38,43 @@ export default function KombinFormScreen() {
 
         {/* 1. Nerede? */}
         <Text style={[styles.sectionLabel, { color: theme.text }]}>Nerede?</Text>
-        <View style={styles.row}>
-          <View style={styles.halfCol}>
-            <Dropdown
-              label="İl"
-              placeholder="İl seç"
-              options={CITIES}
-              selectedValue={selectedCity}
-              onSelect={(opt) => {
-                setSelectedCity(opt.value);
-                setSelectedDistrict(null);
-              }}
-              searchable
-            />
+        {form.citiesError ? (
+          <View>
+            <ErrorBox message={form.citiesError} />
+            <Button title="Tekrar dene" onPress={form.retryCities} />
           </View>
-          <View style={styles.halfCol}>
-            <Dropdown
-              label="İlçe (isteğe bağlı)"
-              placeholder="İlçe seç"
-              options={districtList}
-              selectedValue={selectedDistrict}
-              onSelect={(opt) => setSelectedDistrict(opt.value)}
-              disabled={!selectedCity}
-              searchable
-            />
+        ) : (
+          <View style={styles.row}>
+            <View style={styles.halfCol}>
+              <Dropdown
+                label="İl"
+                placeholder={form.cities ? 'İl seç' : 'Yükleniyor…'}
+                options={form.cities ?? []}
+                selectedValue={form.cityId}
+                onSelect={form.selectCity}
+                disabled={!form.cities}
+                searchable
+              />
+            </View>
+            <View style={styles.halfCol}>
+              <Dropdown
+                label="İlçe (isteğe bağlı)"
+                placeholder={form.districtsLoading ? 'Yükleniyor…' : 'İlçe seç'}
+                options={form.districts}
+                selectedValue={form.districtId}
+                onSelect={form.selectDistrict}
+                disabled={!form.cityId || form.districtsLoading}
+                searchable
+              />
+            </View>
           </View>
-        </View>
+        )}
 
         {/* 2. Ne zaman? */}
         <Text style={[styles.sectionLabel, { color: theme.text }]}>Ne zaman?</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-          {daysList.map((day) => {
-            const active = selectedDayIndex === day.index;
+          {form.days.map((day) => {
+            const active = form.dayIndex === day.index;
             return (
               <TouchableOpacity
                 key={day.index}
@@ -205,7 +85,7 @@ export default function KombinFormScreen() {
                     borderColor: active ? theme.tint : theme.border,
                   },
                 ]}
-                onPress={() => handleDayChange(day.index)}
+                onPress={() => form.selectDay(day.index)}
               >
                 <Text style={[styles.chipText, { color: active ? '#FFF' : theme.text }]}>
                   {day.label}
@@ -218,12 +98,12 @@ export default function KombinFormScreen() {
         {/* 3. Günün hangi vakti? */}
         <Text style={[styles.sectionLabel, { color: theme.text }]}>Günün hangi vakti?</Text>
         <View style={styles.chipRow}>
-          {TIMES_OF_DAY.map((t) => {
-            const active = selectedTime === t.value;
-            const disabled = isTimeDisabled(t.endHour);
+          {form.timesOfDay.map((t) => {
+            const active = form.timeOfDayId === t.id;
+            const disabled = form.isTimeDisabled(t.endHour);
             return (
               <TouchableOpacity
-                key={t.value}
+                key={t.id}
                 disabled={disabled}
                 style={[
                   styles.chipEqual,
@@ -236,7 +116,7 @@ export default function KombinFormScreen() {
                     borderColor: active && !disabled ? theme.tint : theme.border,
                   },
                 ]}
-                onPress={() => setSelectedTime(t.value)}
+                onPress={() => form.selectTimeOfDay(t.id)}
               >
                 <Text
                   style={[
@@ -250,7 +130,7 @@ export default function KombinFormScreen() {
                     },
                   ]}
                 >
-                  {t.label}
+                  {t.displayName}
                 </Text>
               </TouchableOpacity>
             );
@@ -260,11 +140,11 @@ export default function KombinFormScreen() {
         {/* 4. Nereye? */}
         <Text style={[styles.sectionLabel, { color: theme.text }]}>Nereye?</Text>
         <View style={styles.chipRow}>
-          {EVENTS.map((ev) => {
-            const active = selectedEvent === ev.value;
+          {form.eventStyles.map((ev) => {
+            const active = form.eventCode === ev.value;
             return (
               <TouchableOpacity
-                key={ev.value}
+                key={ev.id}
                 style={[
                   styles.chipEqual,
                   {
@@ -272,10 +152,10 @@ export default function KombinFormScreen() {
                     borderColor: active ? theme.tint : theme.border,
                   },
                 ]}
-                onPress={() => handleEventChange(ev.value)}
+                onPress={() => form.selectEvent(ev.value)}
               >
                 <Text style={[styles.chipText, { color: active ? '#FFF' : theme.text }]}>
-                  {ev.label}
+                  {ev.displayName}
                 </Text>
               </TouchableOpacity>
             );
@@ -293,36 +173,46 @@ export default function KombinFormScreen() {
             Aksesuar olsun mu?
           </Text>
           <Switch
-            value={includeAccessory}
-            onValueChange={handleAccessoryChange}
+            value={form.includeAccessory}
+            onValueChange={form.changeAccessory}
             trackColor={{ false: theme.border, true: theme.tint }}
             thumbColor="#FFFFFF"
           />
         </View>
 
-        {/* Hava Özeti Kutusu */}
-        {selectedCity ? (
+        {/* Hava Özeti Kutusu (il seçilince) */}
+        {form.city && form.weather ? (
           <View style={[styles.weatherSummaryBox, { backgroundColor: theme.backgroundSelected }]}>
             <Ionicons name="cloud-outline" size={22} color={theme.tint} />
             <View style={styles.weatherSummaryTexts}>
               <Text style={[styles.weatherSummaryTop, { color: theme.textSecondary }]}>
-                {cityObj?.displayName}
-                {districtObj ? ` · ${districtObj.displayName}` : ''} ·{' '}
-                {daysList[selectedDayIndex].shortSummary} · {timeObj?.label.toLowerCase()}
+                {form.city.displayName}
+                {form.district ? ` · ${form.district.displayName}` : ''} ·{' '}
+                {form.days[form.dayIndex].shortSummary}
+                {form.timeOfDay ? ` · ${form.timeOfDay.displayName.toLocaleLowerCase('tr-TR')}` : ''}
               </Text>
               <Text style={[styles.weatherSummaryBottom, { color: theme.text }]}>
-                Hissedilen {mockTemp}° · {mockWeatherDesc}
+                {form.weather.status === 'ok'
+                  ? `Hissedilen ${form.weather.feelsLike}° · ${form.weather.condition}`
+                  : form.weather.status === 'loading'
+                    ? 'Hava alınıyor…'
+                    : 'Hava durumu alınamadı, biraz sonra tekrar dene.'}
               </Text>
             </View>
           </View>
         ) : null}
 
-        {/* Gönder Butonu (İl seçilmeden pasif) */}
+        {/* Gönder Butonu (il seçilmeden ya da dolap eksikken pasif) */}
         <Button
           title="Kombin öner"
-          disabled={!selectedCity}
-          onPress={() => router.push('/karsilastirma-mock')}
+          disabled={!form.canSubmit}
+          onPress={() => router.push({ pathname: '/karsilastirma-mock', params: form.submitParams })}
         />
+        {form.wardrobeReady === false ? (
+          <Text style={[styles.hint, { color: theme.textSecondary }]}>
+            Kombin önerebilmemiz için önce dolabını tamamla.
+          </Text>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -377,4 +267,5 @@ const styles = StyleSheet.create({
   weatherSummaryTexts: { marginLeft: 10, flex: 1 },
   weatherSummaryTop: { fontSize: 12 },
   weatherSummaryBottom: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+  hint: { fontSize: 13, textAlign: 'center', marginTop: 10 },
 });
