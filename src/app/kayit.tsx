@@ -7,10 +7,8 @@ import RegisterScreen from '@/screens/RegisterScreen';
 export default function KayitRoute() {
   const { signIn } = useAuth();
 
-  const goToLogin = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/giris');
-  };
+  // Yığında Giriş varsa ona döner; yoksa (ör. uygulama bu sayfada yeniden açıldıysa) Giriş açılır.
+  const goToLogin = () => router.dismissTo('/giris');
 
   return (
     <RegisterScreen

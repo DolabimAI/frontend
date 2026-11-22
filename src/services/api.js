@@ -106,8 +106,9 @@ export const apiCall = async (endpoint, method = 'GET', body = null) => {
     return data;
 
   } catch (error) {
-    // Ağ hatası: sunucuya hiç ulaşılamadığında fetch TypeError fırlatır (internet yok, C# kapalı, adres yanlış)
-    if (error instanceof TypeError) {
+    // Ağ hatası: sunucuya hiç ulaşılamadı (internet yok, C# kapalı, adres yanlış). fetch'in fırlattığı hatanın türü
+    // React Native sürümüne göre değişebildiği için C#'tan gelmeyen (status taşımayan) her hata bağlantı hatası sayılır.
+    if (error instanceof TypeError || error?.status === undefined) {
       throw { status: 0, code: 'network_error', message: 'Bağlantı kurulamadı, internetini kontrol edip tekrar dene.' };
     }
     throw error;
