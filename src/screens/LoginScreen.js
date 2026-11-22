@@ -1,31 +1,30 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { apiCall, setAuthToken } from '../services/api';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ErrorBox } from '../components/ui';
+import { apiCall } from '../services/api';
 
+// Giriş (B2, plan C.2). Rota dosyası src/app/giris.tsx; anahtarı saklama ve yönlendirme onLoginSuccess'te (AuthGate).
 export default function LoginScreen({ navigation, onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async () => {
+    setErrorMessage('');
     if (!email || !password) {
-      Alert.alert('Hata', 'Lütfen e-posta ve şifrenizi girin.');
+      setErrorMessage('E-posta ve şifreni gir.');
       return;
     }
 
     setLoading(true);
     try {
-      // C# API ucu çağrısı (Mock veya gerçek)
+      // 200: { accessToken, expiresAt, firstName, isOnboardingAccepted }
       const response = await apiCall('/api/account/signin', 'POST', { email, password });
-      
-      if (response && response.token) {
-        await setAuthToken(response.token);
-        // Giriş başarılı, ana uygulama akışına geçiş tetiklenir
-        if (onLoginSuccess) onLoginSuccess(response.is_onboarding_accepted);
-      }
+      await onLoginSuccess(response);
     } catch (error) {
-      // İş kuralı: Yanlış şifre, olmayan hesap ve silinmiş hesap için tek mesaj. Alanlar temizlenmez!
-      Alert.alert('Giriş Hatası', error.message || 'E-posta ya da şifre hatalı.');
+      // C#'ın mesajı gösterilir (yanlış şifre, olmayan ve silinmiş hesap için tek mesaj); alanlar temizlenmez.
+      setErrorMessage(error?.message || 'E-posta ya da şifre hatalı.');
     } finally {
       setLoading(false);
     }
@@ -34,7 +33,7 @@ export default function LoginScreen({ navigation, onLoginSuccess }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>DolabımAI Giriş</Text>
-      
+
       <TextInput
         style={styles.input}
         placeholder="E-posta adresi"
@@ -54,8 +53,10 @@ export default function LoginScreen({ navigation, onLoginSuccess }) {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+      {errorMessage ? <ErrorBox message={errorMessage} /> : null}
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleLogin}
         disabled={loading}
       >
