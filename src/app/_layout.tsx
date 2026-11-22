@@ -11,7 +11,7 @@ import {
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { Colors } from '@/constants/theme';
-import { LookupsProvider } from '@/context/LookupsContext';
+import AuthGate, { useAuth } from '@/components/AuthGate';
 import { useDevTokenReady } from '@/dev/use-dev-token';
 
 SplashScreen.preventAutoHideAsync();
@@ -48,15 +48,36 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={navTheme}>
       <AnimatedSplashOverlay />
-      {/* Listeler (lookups) bir kez alınır, bütün ekranlar useLookups ile kullanır (C.0 adım 8).
-          B2'de AuthGate gelince bu sarmalayıcı AuthGate'in içine, oturum açıkken çalışacak yere taşınır. */}
-      <LookupsProvider>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.background } }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="karsilastirma" />
-          <Stack.Screen name="secilen-kombin" />
-        </Stack>
-      </LookupsProvider>
+      {/* Oturum kontrolü (B2, AuthGate). Listeler (lookups) AuthGate içinde, oturum açıkken alınır. */}
+      <AuthGate>
+        <RootStack background={palette.background} />
+      </AuthGate>
     </ThemeProvider>
+  );
+}
+
+/**
+ * Ekran yığını. Hangi ekranların açılabileceğini oturum durumu belirler (B2, AuthGate):
+ * oturum yoksa Giriş, Kayıt ve Onam metni, Bilgilendirme onaylanmadıysa yalnızca Bilgilendirme, açıksa uygulamanın geri kalanı.
+ */
+function RootStack({ background }: { background: string }) {
+  const { session } = useAuth();
+
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }}>
+      <Stack.Protected guard={session === 'guest'}>
+        <Stack.Screen name="giris" />
+        <Stack.Screen name="kayit" />
+        <Stack.Screen name="onam" />
+      </Stack.Protected>
+      <Stack.Protected guard={session === 'onboarding'}>
+        <Stack.Screen name="bilgilendirme" />
+      </Stack.Protected>
+      <Stack.Protected guard={session === 'ready'}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="karsilastirma" />
+        <Stack.Screen name="secilen-kombin" />
+      </Stack.Protected>
+    </Stack>
   );
 }

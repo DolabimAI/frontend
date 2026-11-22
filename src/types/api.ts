@@ -4,6 +4,16 @@
 
 export type ApiError = { status: number; code: string; message: string };
 
+// ---- Hesap (C2) ----
+
+/** POST /api/account/signin (200) ve /api/account/register (201) cevabı. */
+export type AuthResponse = {
+  accessToken: string;
+  expiresAt: string;
+  firstName: string;
+  isOnboardingAccepted: boolean;
+};
+
 export type Weather = {
   feelsLikeTemp: number;
   condition: { value: string; displayName: string };
