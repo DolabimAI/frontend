@@ -77,6 +77,9 @@ function RootStack({ background }: { background: string }) {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="karsilastirma" />
         <Stack.Screen name="secilen-kombin" />
+        {/* Parça ekleme akışı (B5): kaydırarak geri dönülmez; İşleniyor'da istek sürerken, Etiket onayı'nda taslak silinmeden çıkılmasın */}
+        <Stack.Screen name="isleniyor" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="etiket-onayi" options={{ gestureEnabled: false }} />
       </Stack.Protected>
     </Stack>
   );
