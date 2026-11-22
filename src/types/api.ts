@@ -2,6 +2,8 @@
 // Mock'lar da bu tiplerle yazılır: gerçek uca geçince yalnızca mock kapanır, ekran kodu değişmez.
 // Bir alan Swagger'la farklıysa Swagger doğrudur ve Zehra'ya bildirilir.
 
+import type { WardrobeStatus } from '@/hooks/use-home-data';
+
 export type ApiError = { status: number; code: string; message: string };
 
 // ---- Hesap (C2) ----
@@ -19,6 +21,39 @@ export type Weather = {
   condition: { value: string; displayName: string };
   isDaytime: boolean;
 };
+
+// ---- Parça ekleme (C3) ----
+
+/**
+ * POST /api/clothes/analyze cevabı (201); onay cevabındaki clothing da bu biçimde.
+ * Güven 0,40'ın altındaysa subtypeId, categoryId ve thicknessId boş (null), styleIds ve seasonIds boş liste gelir.
+ */
+export type ClothingDraft = {
+  clothingId: number;
+  imageUrl: string | null; // süreli bağlantı (1 saat)
+  subtypeId: number | null;
+  categoryId: number | null;
+  mainColorId: number | null;
+  toneId: number | null;
+  isPatterned: boolean;
+  styleIds: number[];
+  seasonIds: number[];
+  thicknessId: number | null;
+};
+
+/** POST /api/clothes/{clothingId}/approve gövdesi: etiket onayı ekranındaki son değerler. */
+export type ApproveClothingRequest = {
+  subtypeId: number;
+  mainColorId: number;
+  toneId: number;
+  isPatterned: boolean;
+  styleIds: number[];
+  seasonIds: number[];
+  thicknessId: number | null;
+};
+
+/** POST /api/clothes/{clothingId}/approve cevabı (200). wardrobeStatus, GET /api/wardrobe/status ile aynı biçim. */
+export type ApproveClothingResponse = { clothing: ClothingDraft; wardrobeStatus: WardrobeStatus };
 
 // ---- Karşılaştırma (C5, C6) ----
 

@@ -2,8 +2,9 @@ import * as SecureStore from 'expo-secure-store';
 
 // C# API adresi ve mock anahtarı (Geliştirme aşamasında mock modu aktif)
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL; // Adres .env.local dosyasından okunur (örnek: .env.example)
-// Henüz C#'ta yazılmamış uçlar mock'ta kalır (C3: /api/clothes, C5–C6: /api/comparisons); diğerleri gerçek API'ye gider.
-const MOCK_PREFIXES = ['/api/clothes', '/api/comparisons'];
+// Henüz C#'ta yazılmamış uçlar mock'ta kalır (C5–C6: /api/comparisons); diğerleri gerçek API'ye gider.
+// /api/clothes (C3) 22 Kasım'da gerçek uca geçti (B5).
+const MOCK_PREFIXES = ['/api/comparisons'];
 const isMocked = (endpoint) => MOCK_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
 
 // Oturum bitince (401 unauthorized) haber verilecek fonksiyon. AuthGate kaydeder ve Giriş'i açar (B2).
@@ -41,6 +42,13 @@ export const removeAuthToken = async () => {
 };
 
 // Genel API İstek Yöneticisi
+// Tipler TypeScript ekranları için: gövde JSON'a çevrilecek bir nesne ya da fotoğraf yüklemesinde FormData olabilir.
+/**
+ * @param {string} endpoint
+ * @param {string} [method]
+ * @param {object | FormData | null} [body]
+ * @returns {Promise<any>}
+ */
 export const apiCall = async (endpoint, method = 'GET', body = null) => {
   // İnternet/Bağlantı kontrolü simülasyonu veya temel hata yönetimi
   try {
